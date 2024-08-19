@@ -1,9 +1,12 @@
 "use client";
 import { useState } from "react";
 
-function Square({ value, onSquareClick }: any) {
+function Square({ value, onSquareClick, highlight }: any) {
   return (
-    <button className="square" onClick={onSquareClick}>
+    <button
+      className={`square ${highlight ? "bg-green-500" : ""}`}
+      onClick={onSquareClick}
+    >
       {value}
     </button>
   );
@@ -11,7 +14,7 @@ function Square({ value, onSquareClick }: any) {
 
 function Board({ xIsNext, squares, onPlay }: any) {
   function handleClick(i: any) {
-    if (calculateWinner(squares) || squares[i]) {
+    if (calculateWinner(squares)?.winner || squares[i]) {
       return;
     }
     const nextSquares = squares.slice();
@@ -23,7 +26,10 @@ function Board({ xIsNext, squares, onPlay }: any) {
     onPlay(nextSquares);
   }
 
-  const winner = calculateWinner(squares);
+  const winnerInfo = calculateWinner(squares);
+  const winner = winnerInfo?.winner;
+  const winningLine = winnerInfo?.line;
+
   let status;
   if (winner) {
     status = "Winner: " + winner;
@@ -31,23 +37,78 @@ function Board({ xIsNext, squares, onPlay }: any) {
     status = "Next player: " + (xIsNext ? "X" : "O");
   }
 
+  function isWinningSquare(index: any) {
+    return winningLine && winningLine.includes(index);
+  }
+
   return (
-    <div className=" pl-10 pt-10">
-      <div className="1status">{status}</div>
-      <div className="board-row">
-        <Square value={squares[0]} onSquareClick={() => handleClick(0)} />
-        <Square value={squares[1]} onSquareClick={() => handleClick(1)} />
-        <Square value={squares[2]} onSquareClick={() => handleClick(2)} />
+    <div className="pl-10 pt-10 flex flex-col">
+      <div className="flex justify-center text-3xl font-bold mb-3">
+        {status}
       </div>
       <div className="board-row">
-        <Square value={squares[3]} onSquareClick={() => handleClick(3)} />
-        <Square value={squares[4]} onSquareClick={() => handleClick(4)} />
-        <Square value={squares[5]} onSquareClick={() => handleClick(5)} />
+        <Square
+          value={squares[0]}
+          onSquareClick={() => handleClick(0)}
+          highlight={isWinningSquare(0)}
+        />
+        <Square
+          value={squares[1]}
+          onSquareClick={() => handleClick(1)}
+          highlight={isWinningSquare(1)}
+        />
+        <Square
+          value={squares[2]}
+          onSquareClick={() => handleClick(2)}
+          highlight={isWinningSquare(2)}
+        />
       </div>
       <div className="board-row">
-        <Square value={squares[6]} onSquareClick={() => handleClick(6)} />
-        <Square value={squares[7]} onSquareClick={() => handleClick(7)} />
-        <Square value={squares[8]} onSquareClick={() => handleClick(8)} />
+        <Square
+          value={squares[3]}
+          onSquareClick={() => handleClick(3)}
+          highlight={isWinningSquare(3)}
+        />
+        <Square
+          value={squares[4]}
+          onSquareClick={() => handleClick(4)}
+          highlight={isWinningSquare(4)}
+        />
+        <Square
+          value={squares[5]}
+          onSquareClick={() => handleClick(5)}
+          highlight={isWinningSquare(5)}
+        />
+      </div>
+      <div className="board-row">
+        <Square
+          value={squares[6]}
+          onSquareClick={() => handleClick(6)}
+          highlight={isWinningSquare(6)}
+        />
+        <Square
+          value={squares[7]}
+          onSquareClick={() => handleClick(7)}
+          highlight={isWinningSquare(7)}
+        />
+        <Square
+          value={squares[8]}
+          onSquareClick={() => handleClick(8)}
+          highlight={isWinningSquare(8)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function HistoryModal({ moves, onClose }: any) {
+  return (
+    <div className="modal">
+      <div className="modal-content">
+        <span className="modal-close" onClick={onClose}>
+          &times;
+        </span>
+        <ol>{moves}</ol>
       </div>
     </div>
   );
@@ -56,6 +117,7 @@ function Board({ xIsNext, squares, onPlay }: any) {
 export default function Game() {
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [currentMove, setCurrentMove] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const xIsNext = currentMove % 2 === 0;
   const currentSquares = history[currentMove];
 
@@ -67,6 +129,7 @@ export default function Game() {
 
   function jumpTo(nextMove: any) {
     setCurrentMove(nextMove);
+    setIsModalOpen(false);
   }
 
   const moves = history.map((squares, move) => {
@@ -78,7 +141,10 @@ export default function Game() {
     }
     return (
       <li key={move}>
-        <button className=" border p-3 m-4" onClick={() => jumpTo(move)}>
+        <button
+          className="border-2 p-2 m-2 text-xl font-semibold rounded-lg"
+          onClick={() => jumpTo(move)}
+        >
           {description}
         </button>
       </li>
@@ -91,8 +157,13 @@ export default function Game() {
         <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
       </div>
       <div className="game-info">
-        <ol>{moves}</ol>
+        <button className="history-button" onClick={() => setIsModalOpen(true)}>
+          Show History
+        </button>
       </div>
+      {isModalOpen && (
+        <HistoryModal moves={moves} onClose={() => setIsModalOpen(false)} />
+      )}
     </div>
   );
 }
@@ -111,7 +182,7 @@ function calculateWinner(squares: any) {
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return { winner: squares[a], line: lines[i] };
     }
   }
   return null;
